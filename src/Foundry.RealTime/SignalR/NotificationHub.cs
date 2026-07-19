@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -17,12 +19,48 @@ public class NotificationHub : Hub
         _logger = logger;
     }
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Foundry.Core.Attributes.RealTimeAttribute?> _hubAttributeCache = new();
+
+    private void ValidateSubscriptionRights(string entityName)
+    {
+        var rtAttr = _hubAttributeCache.GetOrAdd(entityName, name =>
+        {
+            Type? type = null;
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                type = assembly.GetTypes().FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase) 
+                    || t.FullName?.Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+                if (type != null) break;
+            }
+            return type?.GetCustomAttribute<Foundry.Core.Attributes.RealTimeAttribute>();
+        });
+
+        if (rtAttr != null && rtAttr.Roles.Length > 0)
+        {
+            bool isAuthorized = false;
+            foreach (var role in rtAttr.Roles)
+            {
+                if (Context.User?.IsInRole(role) == true)
+                {
+                    isAuthorized = true;
+                    break;
+                }
+            }
+            if (!isAuthorized)
+            {
+                throw new HubException($"Unauthorized to subscribe to real-time events for {entityName}.");
+            }
+        }
+    }
+
     /// <summary>
     /// Allows a client to subscribe to real-time events for a specific entity type (e.g., "Customer", "Invoice").
     /// </summary>
     public async Task SubscribeToEntity(string entityName)
     {
         if (string.IsNullOrWhiteSpace(entityName)) return;
+        
+        ValidateSubscriptionRights(entityName);
         
         string groupName = $"entity:{entityName.Trim()}";
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
@@ -44,9 +82,11 @@ public class NotificationHub : Hub
     /// <summary>
     /// Allows a client to subscribe to real-time updates for a single specific record ID.
     /// </summary>
-    public async Task SubscribeToRecord(string recordId)
+    public async Task SubscribeToRecord(string entityName, string recordId)
     {
-        if (string.IsNullOrWhiteSpace(recordId)) return;
+        if (string.IsNullOrWhiteSpace(entityName) || string.IsNullOrWhiteSpace(recordId)) return;
+        
+        ValidateSubscriptionRights(entityName);
         
         string groupName = $"record:{recordId.Trim()}";
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
