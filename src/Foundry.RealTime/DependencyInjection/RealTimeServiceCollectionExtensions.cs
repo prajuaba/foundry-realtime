@@ -40,7 +40,7 @@ public static class RealTimeServiceCollectionExtensions
         // Register individual channel notification services
         services.AddSingleton<INotificationService, SignalRNotificationService>();
         services.AddSingleton<INotificationService, WebSocketNotificationService>();
-        services.AddSingleton<INotificationService, SseNotificationService>();
+        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<SseNotificationService>());
 
         // Register unified realtime broker
         services.AddSingleton<IRealTimeNotificationBroker, RealTimeNotificationBroker>();
