@@ -14,7 +14,11 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../foundry-core/src/Foundry.Core/Foundry.Core.csproj" />
-    <ProjectReference Include="../../../foundry-mongo/src/FoundryMongo.csproj" />
+    <ProjectReference Include="../../../foundry-mongo/src/Foundry.Mongo/Foundry.Mongo.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" />
   </ItemGroup>
 
 </Project>

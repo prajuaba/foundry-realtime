@@ -26,7 +26,7 @@ Register the real-time broker and connection managers in your dependency injecti
 using Microsoft.Extensions.DependencyInjection;
 
 // 1. Add MongoDB DAL
-builder.Services.AddFoundryMongo(options => {
+builder.Services.AddFoundry.Mongo(options => {
     options.ConnectionString = "mongodb://localhost:27017";
     options.DatabaseName = "AppDb";
 });

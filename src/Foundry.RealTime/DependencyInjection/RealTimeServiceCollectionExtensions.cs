@@ -26,10 +26,15 @@ public static class RealTimeServiceCollectionExtensions
     /// <summary>
     /// Registers all Foundry real-time notification brokers, channels, managers, and mutation decorators.
     /// </summary>
-    public static IServiceCollection AddFoundryRealTime(this IServiceCollection services)
+    public static IServiceCollection AddFoundryRealTime(this IServiceCollection services, string? redisConnectionString = null)
     {
         // Register SignalR backend prerequisites
-        services.AddSignalR();
+        var signalRBuilder = services.AddSignalR();
+        if (!string.IsNullOrWhiteSpace(redisConnectionString))
+        {
+            // Redis backplane for multi-node SignalR horizontal scaling
+            signalRBuilder.AddStackExchangeRedis(redisConnectionString);
+        }
 
         // Register WebSockets Manager
         services.AddSingleton<WebSocketConnectionManager>();
